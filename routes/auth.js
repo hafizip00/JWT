@@ -3,6 +3,7 @@ const User = require("../Models/User");
 const registerSchema = require('../validation')
 const loginValidation = require('../validation')
 const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 
 router.post("/register", async (req, res) => {
 
@@ -40,14 +41,19 @@ router.post('/login' ,async (req, res)=>{
   if(error){
     return res.status(403).send(error.details[0].message)
   }
-  const isemailExist = await User.findOne({email : req.body.email});
-  if (!isemailExist) {
+  const user = await User.findOne({email : req.body.email});
+  if (!user) {
     res.status(500).json("Email Or password is Wrong")
   }
   try {
-  const isPasswordCorrect = await bcrypt.compare(req.body.password ,isemailExist.password)
+  const isPasswordCorrect = await bcrypt.compare(req.body.password ,user.password)
   if(isPasswordCorrect){
-    res.status(200).json(isemailExist)
+    //Create and assign a Token
+
+    const token = jwt.sign({_id : user._id} , process.env.TOKEN_SECRET)
+    res.header("auth-token" , token).json(token)
+
+    // res.status(200).json(user)
   }else{
     res.status(500).json("Credientials mismatch")
   }
